@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(boot)
 library(naniar)
-library(simputation)
+library(simputation) #for linear imputation
 
 ```
 

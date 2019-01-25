@@ -1,0 +1,119 @@
+---
+title: "esm_244_lab3"
+author: "Vienna Saccomanno"
+date: "1/24/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(boot)
+library(naniar)
+library(simputation)
+```
+
+##A. Bootstrapping penguin flipper lengths
+
+###1. Get penguin data:
+
+- Data: Penguin sizes collected November 2007, Palmer Station Antarctica LTER). 
+
+- Citation: Gorman K. 2017. Structural size measurements and isotopic signatures of foraging among adult male and female Adélie penguins (Pygoscelis adeliae) nesting along the Palmer Archipelago near Palmer Station, 2007-2009. Environmental Data Initiative. http://dx.doi.org/10.6073/pasta/abc50eed9138b75f54eaada0841b9b86. Dataset accessed 1/29/2018.
+
+```{r}
+# Read in data
+penguins <- read_csv("penguins.csv")
+
+male_p<-penguins %>% 
+  filter(sex=="MALE") #n=27
+
+#Look at distribution - data do not look normally distributed 
+ggplot(male_p, aes(x=flipper_length))+
+  geom_histogram(bins=10)+
+  theme_light()
+
+flippers<- male_p %>% 
+  pull(flipper_length)
+```
+
+###Creating a function and do bootstrapping
+1. must believe that the sample is representitng of the population
+
+```{r}
+
+#selecting mean for bootstrapping with replacement (i.e. if n=27. bootstrap sample = 27 and then calculate the mean)
+mean_function<-function(x,i){mean(x[i])} #i = bootstap sample number allowing things to be sequential. x= full sample of 27 penguins
+
+set.seed(10)
+boot_10 <- boot(flippers, mean_function, R=10) #will contain bootstrap samples (10)
+#original = origiinal mean
+#bias = difference in the mean of means
+#DIfferent every time, unless you use "set.seed" for one bootstrap
+#Use boot_10#t to see all means
+
+boot_100 <- boot(flippers, mean_function, R=100)
+
+#Visualize, need to change vector -> dataframe. Work around is to call ggplot() and keep it empty
+ggplot()+
+  aes(boot_100$t)+
+  geom_histogram()
+
+#New distibution looks a bit more normal
+boot_10000 <- boot(flippers, mean_function, R=10000)
+
+ggplot()+
+  aes(boot_10000$t)+
+  geom_histogram()
+
+#Look for convergence (i.e. does bias and error change as you increase samples?)
+  #original      bias    std. error
+#t1* 188.1818 -0.01525909    1.351363
+
+boot_100000 <- boot(flippers, mean_function, R=100000)
+
+ggplot()+
+  aes(boot_100000$t)+
+  geom_histogram()
+
+
+#    original       bias    std. error
+#t1* 188.1818 -0.003828636    1.377794
+
+#Calculate the CI using boot.ci function in the boot package - a common parameter to pull when bootstrapping. 
+#Use as a backup to other verifying methods of original sample
+
+boot.ci(boot_10000, conf.=.95)
+
+```
+
+###Missingness with naniar
+```{r}
+
+#visualize missingness
+vis_miss(airquality)
+
+#visualize by variable - counts of missings
+gg_miss_var(airquality, facet = Month)
+
+#Functions to work with GGPlot
+#Geom_miss_point()
+
+ggplot(airquality,
+       aes(x=Ozone,
+           y=Solar.R))+
+  geom_miss_point()
+#pink y = values where solar radiation was measured but no ozone. Vice versa for pink x
+
+#Facets
+ggplot(airquality,
+       aes(x=Solar.R,
+           y= Temp))+
+  geom_miss_point()+
+  scale_color_manual(values = c("orange", "purple"))+
+  facet_wrap(~Month)
+```
+
