@@ -115,5 +115,25 @@ ggplot(airquality,
   geom_miss_point()+
   scale_color_manual(values = c("orange", "purple"))+
   facet_wrap(~Month)
+
+
+#Create a shadow matrix to make it easier to see what data is imputed and what is original
+
+#Visualize in table form (!NA means not NA)
+na_shadow<- bind_shadow(airquality)
+View(na_shadow)
+
+#Imputation by linear regression - watch out for model overfitting
+
+airquality %>%
+  impute_lm(Ozone ~ Temp + Wind) %>%
+  ggplot(aes(x = Temp,
+             y = Ozone)) + 
+  geom_point()
+
+na_shadow %>% 
+  impute_lm(Ozone~Temp + Wind) %>% 
+  ggplot(aes(x=Temp, y=Ozone, color = Ozone_NA))
+
 ```
 
